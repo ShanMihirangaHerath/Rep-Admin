@@ -11,7 +11,8 @@ const DashboardOverview = () => {
     todaysVisits: 0,
     completedVisits: 0,
     repStats: [],
-    chartData: []
+    chartData: [],
+    categoryStats: [],
   });
   const [loading, setLoading] = useState(true);
 
@@ -142,6 +143,40 @@ const DashboardOverview = () => {
               </div>
             </div>
             
+          </div>
+          {/* 🚀 Category Stats Section */}
+          <div className="w-full mt-2">
+            <h3 className="text-base md:text-lg font-semibold text-slate-800 mb-4">Location Statistics by Category</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {stats.categoryStats && stats.categoryStats.length === 0 ? (
+                <div className="col-span-full bg-white p-6 rounded-xl border border-slate-100 text-center text-sm text-slate-500">
+                  No category data available
+                </div>
+              ) : (
+                stats.categoryStats?.map((cat, index) => (
+                  <div key={index} className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col hover:shadow-md transition-shadow">
+                    <h4 className="text-lg font-bold text-slate-700 mb-3 border-b border-slate-100 pb-2">
+                      {cat.category || 'Uncategorized'}
+                    </h4>
+                    
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-slate-500">Total in DB:</span>
+                      <span className="text-sm font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{cat.total}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-slate-500">Ongoing:</span>
+                      <span className="text-sm font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded">{cat.ongoing}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-slate-500">Completed:</span>
+                      <span className="text-sm font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">{cat.completed}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </>
       )}
