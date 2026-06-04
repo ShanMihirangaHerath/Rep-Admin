@@ -16,6 +16,8 @@ import {
   ClipboardList,
   Phone,
   Calendar,
+  Lock, // 🚀 අලුතින් Lock icon එක ගත්තා
+  Key
 } from "lucide-react";
 
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -30,12 +32,12 @@ L.Icon.Default.mergeOptions({
 });
 
 const getMarkerIcon = (status, isUnassigned) => {
-  let color = "#3b82f6"; // Default Blue
-  if (status === "Positive") color = "#10b981"; // Green
-  else if (status === "Needs Revisit") color = "#ef4444"; // Red
-  else if (status === "Shop Not Found") color = "#64748b"; // Gray
-  else if (status === "Do Not Visit") color = "#78350f"; // Brown
-  else if (isUnassigned === 1) color = "#a855f7"; // Purple
+  let color = "#3b82f6"; 
+  if (status === "Positive") color = "#10b981"; 
+  else if (status === "Needs Revisit") color = "#ef4444"; 
+  else if (status === "Shop Not Found") color = "#64748b"; 
+  else if (status === "Do Not Visit") color = "#78350f"; 
+  else if (isUnassigned === 1) color = "#a855f7"; 
 
   return L.divIcon({
     className: "custom-status-icon",
@@ -45,7 +47,15 @@ const getMarkerIcon = (status, isUnassigned) => {
   });
 };
 
+// 🚀 මෙතනින් ඔයාට ඕන Password එක වෙනස් කරගන්න
+const MASTER_PASSWORD = "FD_Reps_Access@2701"; 
+
 const LiveMapModule = () => {
+  // 🚀 Authentication States
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [authError, setAuthError] = useState("");
+
   const [reps, setReps] = useState([]);
   const [selectedRep, setSelectedRep] = useState("all");
   const [filterDate, setFilterDate] = useState(
@@ -55,7 +65,22 @@ const LiveMapModule = () => {
   const [repHistory, setRepHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // 🚀 Password එක Check කරන function එක
+  const handleUnlock = (e) => {
+    e.preventDefault();
+    if (passwordInput === MASTER_PASSWORD) {
+      setIsUnlocked(true);
+      setAuthError("");
+    } else {
+      setAuthError("Incorrect password. Access denied.");
+      setPasswordInput("");
+    }
+  };
+
   useEffect(() => {
+    // 🚀 Map එක Unlock කරලා නම් විතරයි Data Fetch කරන්නේ (Security)
+    if (!isUnlocked) return; 
+
     const fetchReps = async () => {
       try {
         const res = await axios.get("http://157.230.244.87:5000/api/reps");
@@ -65,9 +90,11 @@ const LiveMapModule = () => {
       }
     };
     fetchReps();
-  }, []);
+  }, [isUnlocked]);
 
   useEffect(() => {
+    if (!isUnlocked) return;
+
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -90,17 +117,55 @@ const LiveMapModule = () => {
       setLoading(false);
     };
     fetchData();
-  }, [selectedRep, filterDate]);
+  }, [selectedRep, filterDate, isUnlocked]);
 
   const mapCenter =
     mapData.targets.length > 0 && mapData.targets[0].latitude
       ? [mapData.targets[0].latitude, mapData.targets[0].longitude]
       : [6.9271, 79.8612];
 
+  // 🚀 Lock Screen UI එක
+  if (!isUnlocked) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col items-center justify-center min-h-[calc(100vh-120px)] p-6">
+        <div className="bg-slate-50 p-8 rounded-2xl border border-slate-200 max-w-md w-full text-center shadow-lg">
+          <div className="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-10 h-10 text-blue-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">Restricted Access</h2>
+          <p className="text-sm text-slate-500 mb-8">
+            Live routing and location data are highly sensitive. Please enter the master password to unlock this module.
+          </p>
+          
+          <form onSubmit={handleUnlock} className="flex flex-col gap-4">
+            <div className="relative">
+              <Key className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <input
+                type="password"
+                placeholder="Enter Master Password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium bg-white"
+                autoFocus
+              />
+            </div>
+            {authError && <p className="text-red-500 text-sm font-semibold text-left pl-1 animate-pulse">{authError}</p>}
+            <button
+              type="submit"
+              className="w-full bg-[#0A192F] text-white py-3 rounded-xl font-bold hover:bg-blue-900 transition-colors shadow-md mt-2"
+            >
+              Unlock Dashboard
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // 🚀 Unlocked වුණාට පස්සේ පෙන්වන Main UI එක (ඔයාගේ පරණ කෝඩ් එකමයි)
   return (
     <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col min-h-[calc(100vh-120px)]">
       
-      {/* Filter Controls (Responsive Flex) */}
       <div className="mb-6 flex flex-col xl:flex-row justify-between items-start xl:items-center bg-slate-50 p-4 rounded-xl border border-slate-200 gap-4">
         <div>
           <h3 className="text-lg sm:text-xl font-bold text-slate-800 flex items-center">
@@ -109,7 +174,6 @@ const LiveMapModule = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full xl:w-auto">
-          {/* Date Picker Section */}
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <label className="text-sm font-medium text-slate-600 flex items-center shrink-0">
               <Calendar className="w-4 h-4 mr-1" /> Date:
@@ -132,7 +196,6 @@ const LiveMapModule = () => {
 
           <div className="hidden sm:block h-8 w-px bg-slate-300"></div>
 
-          {/* Rep Selection Section */}
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <label className="text-sm font-medium text-slate-600 flex items-center shrink-0">
               <User className="w-4 h-4 mr-1" /> Rep:
@@ -142,7 +205,7 @@ const LiveMapModule = () => {
               onChange={(e) => setSelectedRep(e.target.value)}
               className="border-2 border-slate-300 rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 bg-white focus:outline-none focus:border-blue-500 shadow-sm cursor-pointer w-full sm:w-auto"
             >
-              <option value="all">🌐 All Reps & Locations</option>
+              <option value="all">📍 All Reps & Locations</option>
               {reps.map((rep) => (
                 <option key={rep.id} value={rep.id}>
                   {rep.first_name} {rep.last_name}
@@ -153,7 +216,6 @@ const LiveMapModule = () => {
         </div>
       </div>
 
-      {/* Main Loader State */}
       {loading ? (
         <div className="flex-1 flex justify-center items-center h-40">
           <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
@@ -161,10 +223,8 @@ const LiveMapModule = () => {
       ) : (
         <div className="flex flex-col space-y-6">
           
-          {/* MAPS SECTION */}
           <div className={`grid grid-cols-1 ${selectedRep === "all" ? "lg:grid-cols-1" : "lg:grid-cols-2"} gap-6`}>
             
-            {/* Map 1: Targets */}
             <div className="flex flex-col border border-slate-200 rounded-xl overflow-hidden shadow-sm h-[320px] sm:h-[400px]">
               <div className="bg-[#0A192F] text-white p-3 flex justify-between items-center text-sm sm:text-base">
                 <span className="font-semibold flex items-center truncate mr-2">
@@ -226,7 +286,6 @@ const LiveMapModule = () => {
               </div>
             </div>
 
-            {/* Map 2: Actual Route */}
             {selectedRep !== "all" && (
               <div className="flex flex-col border border-slate-200 rounded-xl overflow-hidden shadow-sm h-[320px] sm:h-[400px]">
                 <div className="bg-slate-100 text-slate-800 border-b border-slate-200 p-3 flex justify-between items-center text-sm sm:text-base">
@@ -289,7 +348,6 @@ const LiveMapModule = () => {
             )}
           </div>
 
-          {/* FULL STATUS REPORT SECTION */}
           {selectedRep !== "all" && repHistory.length > 0 && (
             <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
               <div className="bg-[#0A192F] text-white p-4 flex justify-between items-center">
@@ -301,7 +359,6 @@ const LiveMapModule = () => {
                 </span>
               </div>
 
-              {/* DESKTOP TABLE VIEW (Visible on tablet & desktop) */}
               <div className="hidden md:block overflow-x-auto bg-white">
                 <table className="w-full text-left text-sm border-collapse">
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
@@ -371,7 +428,7 @@ const LiveMapModule = () => {
                                 {latestLog.log_lat && latestLog.log_lng && (
                                   <div className="mt-2 pt-2 border-t border-slate-100">
                                     <a
-                                      href={`https://www.google.com/maps?q=${latestLog.log_lat},${latestLog.log_lng}`}
+                                      href={`https://www.google.com/maps?q=$${latestLog.log_lat},${latestLog.log_lng}`}
                                       target="_blank"
                                       rel="noreferrer"
                                       className="inline-flex text-[11px] font-semibold bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
@@ -392,14 +449,12 @@ const LiveMapModule = () => {
                 </table>
               </div>
 
-              {/* MOBILE CARDS VIEW (Visible only on mobile screens) */}
               <div className="block md:hidden bg-slate-50 p-3 space-y-4">
                 {repHistory.map((row) => {
                   const latestLog = row.logs.length > 0 ? row.logs[0] : null;
 
                   return (
                     <div key={row.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-3">
-                      {/* Top Header Card Info */}
                       <div className="flex justify-between items-start gap-2">
                         <div className="flex items-start">
                           <MapPin className={`w-5 h-5 mt-0.5 mr-2 shrink-0 ${row.is_unassigned ? "text-purple-500" : "text-blue-500"}`} />
@@ -408,7 +463,6 @@ const LiveMapModule = () => {
                             <span className="text-[11px] text-slate-500 font-medium block mt-0.5">Assigned: {row.assigned_date}</span>
                           </div>
                         </div>
-                        {/* Status Badge */}
                         <div className="shrink-0">
                           {latestLog ? (
                             <span className={`inline-block px-2.5 py-0.5 text-[11px] font-bold rounded-full border ${
@@ -427,14 +481,12 @@ const LiveMapModule = () => {
                         </div>
                       </div>
 
-                      {/* Spontaneous Tag */}
                       {row.is_unassigned === 1 && (
                         <span className="text-[10px] font-bold px-2.5 py-0.5 bg-purple-100 text-purple-700 rounded-full border border-purple-200 self-start">
                           Spontaneous Visit
                         </span>
                       )}
 
-                      {/* Log details wrapper */}
                       {latestLog ? (
                         <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-xs text-slate-700 space-y-1.5 mt-1">
                           <div className="font-bold text-slate-800 text-sm">👤 Met: {latestLog.met_person}</div>
@@ -454,7 +506,7 @@ const LiveMapModule = () => {
                           {latestLog.log_lat && latestLog.log_lng && (
                             <div className="pt-2">
                               <a
-                                href={`https://www.google.com/maps?q=${latestLog.log_lat},${latestLog.log_lng}`}
+                                href={`https://www.google.com/maps?q=$${latestLog.log_lat},${latestLog.log_lng}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="w-full text-center block font-semibold bg-blue-50 text-blue-600 px-2 py-2 rounded border border-blue-100 transition-colors"
