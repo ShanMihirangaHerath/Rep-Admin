@@ -16,7 +16,7 @@ import {
   ClipboardList,
   Phone,
   Calendar,
-  Lock, // 🚀 අලුතින් Lock icon එක ගත්තා
+  Lock, 
   Key
 } from "lucide-react";
 
